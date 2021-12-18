@@ -87,34 +87,36 @@ loadData().then(data => {
 			https://www.d3-graph-gallery.com/graph/custom_axis.html
 		*/ 
 		
-		// clean old ones before plotting new ones
-		scatterPlot.selectAll('circle').remove();
-		
 		// determination of axes scale
-		let x_arr = data.map(function(d) {Number(d[xParam][year])});
+		let x_arr = data.map(d=> Number(d[xParam][year]));
 		let min_x = Math.min.apply(Math, x_arr)
 		let max_x = Math.max.apply(Math, x_arr)
         x.domain([min_x, max_x]);
 		xAxis.call(d3.axisBottom(x));
 		
-		let y_arr = data.map(function(d) {Number(d[yParam][year])});
+		let y_arr = data.map(d => Number(d[yParam][year]));
 		let min_y = Math.min.apply(Math, y_arr)
 		let max_y = Math.max.apply(Math, y_arr)
         y.domain([min_y, max_y]);
-		xAxis.call(d3.axisLeft(y));
+		yAxis.call(d3.axisLeft(y));
 		
 		let rValues = data.map(d => Number(d[rParam][year]));
-		radiusScale.domain([d3.min(rValues), d3.max(rValues)]);
+		let r_arr = data.map(d => Number(d[rParam][year]));
+		let min_r = Math.min.apply(Math, r_arr)
+		let max_r = Math.max.apply(Math, r_arr)
+		radiusScale.domain([min_r, max_r]);
 		
-		// alert(xParam + yParam + rParam + year);
+		// clean old ones before plotting new ones
+		scatterPlot.selectAll('circle').remove();
+		
 		scatterPlot.selectAll("circle")
 		  .data(data).enter()
 		  .append("circle")
-		  .attr("cx", function(d) {return d[xParam][year]})
-		  .attr("cy", function(d) {return d[yParam][year]})
-		  .attr("r", function(d) {return d[rParam][year]})
-		  .attr("fill", function(d){return colorScale(d['region'])
-		   });
+		  .attr("cx", d => x(d[xParam][year]))
+		  .attr("cy", d => y(d[yParam][year]))
+		  .attr("r", d => radiusScale(d[rParam][year]))
+		  .attr("fill", d => colorScale(d["region"]));
+		
         return; 
      }
 
