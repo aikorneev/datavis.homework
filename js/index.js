@@ -2,6 +2,7 @@ const width = 1000;
 const barWidth = 500;
 const height = 500;
 const margin = 30;
+const opacity = 0.5;
 
 const yearLable = d3.select('#year');
 const countryName = d3.select('#country-name');
@@ -59,24 +60,78 @@ loadData().then(data => {
     d3.select('#radius').on('change', function(){ 
         rParam = d3.select(this).property('value');
         updateScattePlot();
+		updateBar();
     });
 
     d3.select('#x').on('change', function(){ 
         xParam = d3.select(this).property('value');
         updateScattePlot();
+        updateBar();
     });
 
     d3.select('#y').on('change', function(){ 
         yParam = d3.select(this).property('value');
         updateScattePlot();
+        updateBar();
     });
 
     d3.select('#param').on('change', function(){ 
         param = d3.select(this).property('value');
+        updateScattePlot();
         updateBar();
     });
 
     function updateBar(){
+		/* Step 3: Bar Chart
+		helpful sources:
+			https://www.tutorialsteacher.com/d3js/create-bar-chart-using-d3js
+		*/
+		
+		// calculate average values for regions
+		let regs = d3.set(data.map(d => d.region)).values();
+        let regs_avg = regs.map(r => {
+            return {
+				"region": r,
+				"avg": d3.mean(data.filter(d => d.region == r)
+					.flatMap(d => d[param][year]))
+            }
+        });
+		
+		// adjust axes
+        xBar.domain(regs);
+        xBarAxis.call(d3.axisBottom(xBar));
+        yBar.domain([0, d3.max(regs_avg.map(d => d.avg))]);
+        yBarAxis.call(d3.axisLeft(yBar));
+
+        // clean old ones
+		barChart.selectAll("rect").remove();
+
+		// create bar chart
+        barChart.selectAll("rect")
+            .data(regs_avg)
+            .enter()
+			.append("rect")
+			.attr("x", d => xBar(d.region))
+			.attr("y", d => yBar(d.avg))
+			.attr("height", d => height - (margin + yBar(d.avg)))
+			.attr("width", xBar.bandwidth())
+			.attr("fill", d => colorScale(d.region))
+			.attr("region", d => d.region)
+			.on("click", function(d) {
+					// restore old opacity in case it was changed
+                    scatterPlot.selectAll('circle').style('opacity', 0.85)
+					
+					// change opacity for others
+                    scatterPlot.selectAll('circle')
+                        .filter(d => d.region != d3.select(this).attr('region'))
+						.style('opacity', 0)
+					
+					// update columns opacity
+					barChart.selectAll('rect').attr('opacity', opacity)
+                    d3.select(this).attr('opacity', 1)
+					}
+				)
+		
         return;
     }
 
@@ -115,7 +170,8 @@ loadData().then(data => {
 		  .attr("cx", d => x(d[xParam][year]))
 		  .attr("cy", d => y(d[yParam][year]))
 		  .attr("r", d => radiusScale(d[rParam][year]))
-		  .attr("fill", d => colorScale(d["region"]));
+		  .attr("fill", d => colorScale(d["region"]))
+		  .attr("region", d => d.region);
 		
         return; 
      }
