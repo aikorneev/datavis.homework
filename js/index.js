@@ -24,7 +24,7 @@ let yParam = 'child-mortality';
 let rParam = 'gdp';
 let year = '2000';
 let param = 'child-mortality';
-let lineParam = 'gdp';
+let lParam = 'child-mortality';
 let highlighted = '';
 let selected;
 
@@ -50,6 +50,11 @@ loadData().then(data => {
 
     colorScale.domain(d3.set(data.map(d=>d.region)).values());
 
+    d3.select('#p').on('change', function(){ 
+        lParam = d3.select(this).property('value');
+        updateLineChart();
+    });
+	
     d3.select('#range').on('input', function(){ 
         year = d3.select(this).property('value');
         yearLable.html(year);
@@ -80,7 +85,48 @@ loadData().then(data => {
         updateScattePlot();
         updateBar();
     });
+	
+	function updateLineChart(){
+		/* Step 3: Line Chart
+		helpful sources:
+			https://www.d3-graph-gallery.com/graph/line_basic.html
+		*/
+        if (typeof selected != 'undefined') {
+            d3.select('.country-name').text(selected);
 
+            line_data = Object.entries(data.filter(d => d.country == selected)[0][lParam]).slice(0, 221)
+            dates = line_data.map(d => +d[0])
+            y_col = line_data.map(d => +d[1])
+
+			// adjust x axis
+			let min_dat = Math.min.apply(Math, dates)
+			let max_dat = Math.max.apply(Math, dates)
+            x.domain([min_dat, max_dat]);
+            xLineAxis.call(d3.axisBottom(x));
+
+			// adjust y axis
+			let min_y_col = Math.min.apply(Math, y_col)
+			let max_y_col = Math.max.apply(Math, y_col)
+            y.domain([min_y_col, max_y_col]);
+            yLineAxis.call(d3.axisLeft(y));
+			
+			// delete old one
+            lineChart.select('.lineData').remove();
+
+			// draw new one
+            lineChart.append("path")
+                .datum(line_data)
+                .attr("class", "lineData")
+                .attr("fill", "none")
+                .attr("stroke", "blue")
+                .attr("stroke-width", 1.5)
+                .attr("d", d3.line()
+					.x(d => {return x(+d[0])})
+					.y(d => y(+d[1]))
+					)
+        }
+    }
+	
     function updateBar(){
 		/* Step 3: Bar Chart
 		helpful sources:
@@ -171,7 +217,20 @@ loadData().then(data => {
 		  .attr("cy", d => y(d[yParam][year]))
 		  .attr("r", d => radiusScale(d[rParam][year]))
 		  .attr("fill", d => colorScale(d["region"]))
-		  .attr("region", d => d.region);
+		  .attr("region", d => d.region)
+		  .attr('country', d => d.country)
+		  .on('click', function(d) {
+			// set style for all circles
+			scatterPlot.selectAll('circle').style('opacity', opacity).attr('stroke-width', 1)
+			
+			// highlight the chosen one 
+			d3.select(this).style('opacity', 1).attr('stroke-width', 2)
+			d3.select(this).raise();
+			
+			selected = d3.select(this).attr('country');
+			updateBar();
+			updateLineChart();
+			});
 		
         return; 
      }
